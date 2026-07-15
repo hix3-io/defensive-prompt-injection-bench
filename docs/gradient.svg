@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" font-family="Segoe UI,Helvetica,Arial,sans-serif">
+  <rect width="720" height="320" rx="12" fill="#0d1117"/>
+  <text x="360" y="32" fill="#e7edf3" font-size="18" font-weight="700" text-anchor="middle">Le blocage fournisseur monte avec l'agressivité du texte</text>
+  <text x="360" y="52" fill="#9aa6b2" font-size="12" text-anchor="middle">taux de blocage cumulé sur les 2 campagnes (N=6 / condition)</text>
+
+  <!-- axis -->
+  <line x1="90" y1="80" x2="90" y2="250" stroke="#2a313c"/>
+  <line x1="90" y1="250" x2="660" y2="250" stroke="#2a313c"/>
+  <line x1="90" y1="80"  x2="660" y2="80"  stroke="#20262f" stroke-dasharray="3 3"/>
+  <line x1="90" y1="165" x2="660" y2="165" stroke="#20262f" stroke-dasharray="3 3"/>
+  <text x="80" y="84"  fill="#9aa6b2" font-size="12" text-anchor="end">50</text>
+  <text x="80" y="169" fill="#9aa6b2" font-size="12" text-anchor="end">25</text>
+  <text x="80" y="254" fill="#9aa6b2" font-size="12" text-anchor="end">0</text>
+
+  <!-- bars: off 17, v2 17, v1 50 ; scale 50% over 170px -> 3.4px/% ; baseline y=250 -->
+  <rect x="160" y="192" width="80" height="58"  rx="3" fill="#d29922"/>
+  <text x="200" y="184" fill="#d29922" font-size="14" font-weight="700" text-anchor="middle">~17%</text>
+  <text x="200" y="272" fill="#e7edf3" font-size="14" font-weight="700" text-anchor="middle">off</text>
+
+  <rect x="335" y="192" width="80" height="58"  rx="3" fill="#d29922"/>
+  <text x="375" y="184" fill="#d29922" font-size="14" font-weight="700" text-anchor="middle">~17%</text>
+  <text x="375" y="272" fill="#e7edf3" font-size="14" font-weight="700" text-anchor="middle">v2 (cohérent)</text>
+
+  <rect x="510" y="80"  width="80" height="170" rx="3" fill="#f85149"/>
+  <text x="550" y="72" fill="#f85149" font-size="14" font-weight="700" text-anchor="middle">~50%</text>
+  <text x="550" y="272" fill="#e7edf3" font-size="14" font-weight="700" text-anchor="middle">v1 (méta)</text>
+
+  <!-- trend arrow -->
+  <line x1="200" y1="150" x2="545" y2="60" stroke="#4f9dff" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#tip)"/>
+  <text x="360" y="300" fill="#9aa6b2" font-size="12" text-anchor="middle">…mais toujours APRÈS l'exfiltration du flag — le garde-fou coupe le rapport, pas l'attaque</text>
+  <defs><marker id="tip" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4f9dff"/></marker></defs>
+</svg>

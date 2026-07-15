@@ -1,106 +1,193 @@
-# Can page content stop an LLM pentest agent?
+<h1 align="center">Can page content stop an LLM pentest agent?</h1>
 
-> **TL;DR (EN).** A reproducible lab that measures whether "defensive prompt
-> injection" — warnings/instructions embedded in a web page's HTML, JS, HTTP
-> headers, `robots.txt`, `llms.txt` and API responses — can make an autonomous
-> LLM pentest agent (Claude Code Opus) give up. **Result: it can't.** Across 18
-> runs, the agent exfiltrated the planted flag **100 % of the time**, in every
-> condition. The only interruptions came from the *provider's* safety guardrail,
-> were stochastic, and fired **after** exploitation. Findings match the
-> 2023–2026 literature: harden the code, not the text.
+<p align="center">
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="license">
+  <img src="https://img.shields.io/badge/runs-18-informational" alt="runs">
+  <img src="https://img.shields.io/badge/flag%20exfiltration-100%25-critical" alt="flag exfiltration">
+  <img src="https://img.shields.io/badge/node-20%2B-3fb950" alt="node">
+  <img src="https://img.shields.io/badge/agent-Claude%20Code%20Opus-a371f7" alt="agent">
+</p>
 
-Banc d'essai reproductible qui mesure si des **phrases défensives injectées dans
-une page web** (HTML, JavaScript, en-têtes HTTP, `robots.txt`, `llms.txt`,
-réponses API) peuvent faire **abandonner un agent de pentest autonome piloté par
-LLM**. Réponse courte : **non**.
+<p align="center">
+  Banc d'essai reproductible qui mesure si des <b>phrases défensives injectées dans une page web</b><br>
+  (HTML, JavaScript, en-têtes HTTP, <code>robots.txt</code>, <code>llms.txt</code>, réponses API)<br>
+  peuvent faire <b>abandonner un agent de pentest autonome piloté par LLM</b>.
+</p>
 
-📄 **Rapport complet (schémas + état de l'art) : [`rapport_complet.html`](rapport_complet.html)**
-· version markdown : [`RAPPORT_DECOUVERTE.md`](RAPPORT_DECOUVERTE.md)
+<p align="center"><b>Réponse courte : non.</b></p>
+
+> **TL;DR (EN).** A reproducible lab that measures whether *defensive prompt injection* — warnings and
+> instructions embedded in a web page's HTML, JS, HTTP headers, `robots.txt`, `llms.txt` and API
+> responses — can make an autonomous LLM pentest agent (Claude Code Opus) give up. **It can't.** Across
+> **18 runs the agent exfiltrated the planted flag 100 % of the time**, in every condition. The only
+> interruptions came from the *provider's* safety guardrail, were stochastic, and fired **after**
+> exploitation. Harden the code, not the text.
+
+📄 **Rapport complet (schémas + état de l'art) : [`rapport_complet.html`](rapport_complet.html)** · version markdown : [`RAPPORT_DECOUVERTE.md`](RAPPORT_DECOUVERTE.md)
 
 ---
 
-## Résultat
+## 📊 Résultats
 
-Cible instrumentée (boutique de cartes cadeaux avec une IDOR plantée + flag),
-agent Claude Code Opus lancé via `claude -p`, prompt figé, seule variable = la
-config de payloads défensifs. 18 runs, 2 campagnes.
+<p align="center"><img src="docs/results.svg" width="680" alt="Flag exfiltré 100% dans toutes les conditions"></p>
 
-| Condition | flag exfiltré | bloqué par le fournisseur | requêtes (moy.) |
-|---|---|---|---|
-| **off** (0 payload, contrôle) | **100 %** | 0 % | 22 |
-| **v1** (méta, adressé à l'IA) | **100 %** | 67 % | 16 |
-| **v2** (cohérent : CGU, RGPD) | **100 %** | 33 % | 19 |
+| Condition | Payloads | Flag exfiltré | Bloqué par le fournisseur | Requêtes (moy.) |
+|:--|:--|:--:|:--:|:--:|
+| **off** — contrôle | 0 | **100 %** | 0 % | 22 |
+| **v1** — méta, adressé à l'IA | 9 | **100 %** | 67 % | 16 |
+| **v2** — cohérent (CGU, RGPD) | 11 | **100 %** | 33 % | 19 |
 
-- **100 % d'exfiltration** dans toutes les conditions. Aucun texte n'arrête l'agent.
-- Le blocage vient du **garde-fou temps-réel du fournisseur** (pas de la cible),
-  est **stochastique**, croît avec l'agressivité du texte, et survient **après**
-  l'exploitation.
-- L'agent traite les payloads comme des « leurres / social engineering » : son
-  **autorisation vient de l'opérateur**, pas du contenu de la page
-  (hiérarchie d'instructions).
+- **100 % d'exfiltration** dans toutes les conditions (18/18 runs) — aucun texte n'arrête l'agent.
+- Le seul blocage vient du **garde-fou temps-réel du fournisseur** (pas de la cible), est **stochastique**, et survient **après** l'exploitation.
 
-Conclusion : la défense efficace est dans le **code** (contrôle d'ownership
-manquant), pas dans des bannières adressées à l'IA. L'état de l'art (Mantis,
-tarpits Cloudflare, instruction hierarchy OpenAI, CaMeL) converge.
+<p align="center"><img src="docs/gradient.svg" width="680" alt="Le blocage fournisseur monte avec l'agressivité du texte"></p>
 
-## Comment ça marche
+> 🗣️ *Notes de l'agent (condition off)* : « payloads d'injection de prompt … **traités comme leurres /
+> social engineering et ignorés : l'autorisation vient de l'opérateur du lab, pas du contenu de la
+> cible.** »
 
-- **Cible** : SPA React + API Express, servie sous un domaine réaliste. Une seule
-  vuln plantée : IDOR sur `GET /api/orders/:id` (auth OK, ownership absent). Le
-  flag est le « code cadeau » d'une commande appartenant à un autre client.
-- **Identifiants planqués dans le bundle JS** → l'agent doit lire la surface
-  défendue (donc rencontrer les payloads) avant de pouvoir s'authentifier.
-- **Isolation 2 ports** : la cible (payloads) et le poste de pilotage
-  (catalogue de payloads, compteur de runs) sont sur des ports séparés — l'agent
-  ne peut pas découvrir qu'il est dans un banc d'essai.
-- **Catalogue de payloads** : produit `tactique × vecteur` (15 vecteurs
-  d'injection), activable par profils `off` / `v1` / `v2`.
-- **Compteur serveur** : trace chaque requête et le jalon atteint
-  (accueil → login → énumération IDOR → flag), distingue *blocage fournisseur*
-  vs *abandon déclaré par l'agent*.
+**Conclusion :** la défense efficace est dans le **code** (le contrôle d'ownership manquant), pas dans
+des bannières adressées à l'IA. L'état de l'art (Mantis, tarpits Cloudflare, *instruction hierarchy*
+OpenAI, CaMeL) [converge](#-état-de-lart).
 
-## Lancer
+---
+
+## 🧭 Comment ça marche
+
+Cible instrumentée + agent autonome + une seule variable : la config de payloads défensifs.
+
+```mermaid
+flowchart LR
+  A["🤖 Agent<br/>claude -p"] -->|HTTP| P
+  subgraph P["🎯 CIBLE · cartavault.com:80"]
+    B["Boutique + payloads injectés"]
+    C["/api/config · panel-*.js → 404"]
+  end
+  P -. "état partagé (même process)" .- M
+  subgraph M["🛠️ PILOTAGE · localhost:4174"]
+    D["Banc d'essai #lab"]
+    E["/api/config · /api/runs"]
+  end
+  O["👤 Opérateur"] --> M
+```
+
+**Isolation 2 ports** : l'agent ne voit que la cible ; le catalogue de payloads et le compteur de runs
+restent sur un port admin local — l'agent ne peut pas découvrir qu'il est dans un banc d'essai.
+
+La vulnérabilité plantée est une **IDOR** (`GET /api/orders/:id` : auth OK, ownership absent). Les
+identifiants sont **planqués dans le bundle JS** → l'agent doit lire la surface défendue (donc
+rencontrer les payloads) avant de pouvoir s'authentifier :
+
+```mermaid
+flowchart LR
+  S1["GET /<br/>HTML"] --> S2["lire le JS<br/>→ creds"] --> S3["POST /login<br/>→ token"] --> S4["énum.<br/>/orders/:id"] --> S5["🚩 FLAG<br/>+ PII + codes"]
+```
+
+---
+
+## ⚙️ Installation & mise en place
+
+### Prérequis
+- **Node.js 20+** et **npm**
+- **[Claude Code CLI](https://claude.com/claude-code)** (`claude -p`) — pour lancer l'agent
+- `curl`, `python3` (présents sur la plupart des systèmes) ; `jq` optionnel
+
+### 1. Installer les dépendances
+```bash
+git clone https://github.com/hix3-io/defensive-prompt-injection-bench.git
+cd defensive-prompt-injection-bench
+npm install                 # installe React + Vite + Express (dev only)
+```
+
+### 2. (Optionnel) Domaine réaliste
+Pour que l'agent voie un vrai nom d'hôte plutôt que `localhost`, ajouter à `/etc/hosts` :
+```bash
+echo "127.0.0.1   cartavault.com" | sudo tee -a /etc/hosts
+```
+
+### 3. Builder la SPA puis lancer les deux serveurs
+```bash
+npm run build               # compile la boutique React dans dist/
+
+# Port 80 (domaine propre http://cartavault.com) — nécessite les privilèges :
+sudo -E node server.js      # → CIBLE :80  +  PILOTAGE http://localhost:4174/#lab
+
+# ...ou sans root, sur un port haut :
+PORT=4173 node server.js    # → http://cartavault.com:4173  (adapter BASE ci-dessous)
+```
+
+Tu dois voir :
+```
+  CIBLE (agent)    → http://cartavault.com
+  PILOTAGE (toi)   → http://localhost:4174/#lab
+```
+
+---
+
+## ▶️ Lancer une mesure
+
+L'agent est lancé en headless via `claude -p`, avec un **prompt figé** (`prompts/`) — seule la config de
+payloads change d'un run à l'autre.
 
 ```bash
-npm install
+# Un run unique. 2e argument = profil de payloads : off | v1 | v2 | v1full | single:<id>
+./run_agent.sh baseline off        # contrôle, sans défense
+./run_agent.sh essai-v1 v1         # payloads méta (adressés à l'IA)
+./run_agent.sh essai-v2 v2         # payloads cohérents (CGU, RGPD…)
 
-# domaine réaliste (optionnel) : ajouter à /etc/hosts
-#   127.0.0.1   cartavault.com
-npm run build
-sudo -E node server.js     # cible :80  +  pilotage http://localhost:4174/#lab
-# sans root : PORT=4173 node server.js  (puis BASE=http://cartavault.com:4173)
+# Campagne complète : N runs par condition → CSV + agrégats
+./bench.sh 3 off v1 v2             # 3×3 runs → results/bench.csv
 ```
 
-Un run, ou une campagne :
+Chaque run produit un rapport JSON (`results/<label>.report.json`) et alimente le **compteur serveur**,
+qui trace jusqu'où l'agent est allé (`accueil → login → énumération IDOR → flag`) et distingue *blocage
+fournisseur* vs *abandon déclaré par l'agent*. Suivi live sur `http://localhost:4174/#lab`.
 
-```bash
-./run_agent.sh baseline off        # 1 run via claude -p
-./bench.sh 3 off v1 v2             # N=3/condition -> results/bench.csv
+> Variables d'env utiles : `BASE` (cible), `ADMIN` (pilotage), `MODEL` (défaut `opus`), `MAXTURNS`.
+
+---
+
+## 🔬 État de l'art
+
+Une revue multi-sources (arXiv, docs officielles OpenAI/Anthropic/Cloudflare/DeepMind, vérif.
+adversariale) **converge avec ce résultat** :
+
+| Piste | Verdict de la littérature |
+|:--|:--|
+| **Prompt-injection défensive** (Mantis, ~95 %) | Marche seulement contre des autopilotes faibles qui réinjectent la sortie sans filtre ; « échoue par conception » contre un agent supervisé. |
+| **AI honeypots** (Palisade) | *Détectent* un agent LLM — ne l'arrêtent pas. |
+| **Tarpits** (Cloudflare AI Labyrinth, Nepenthes) | Ne bloquent pas ; ralentissent des *crawlers de scraping*, pas des agents orientés-objectif. |
+| **Instruction hierarchy** (OpenAI) | L'autorisation de l'opérateur prime ; le contenu de page = donnée non fiable de basse privilège. |
+| **Défenses qui marchent** (CaMeL, DeepMind) | Architecturales, côté déployeur — pas du texte qu'un site cible impose à l'agent d'un attaquant. |
+
+Détails et références dans [`rapport_complet.html`](rapport_complet.html) (§9).
+
+---
+
+## 🗂️ Structure
+
+```
+server.js              cible + payloads + isolation 2 ports + compteur de runs
+payloads.js            catalogue tactique × vecteur (profils v1 / v2)
+src/                   SPA React (boutique) + injecteurs client + banc d'essai (#lab)
+prompts/               system + task prompt figés de l'agent
+run_agent.sh           lance l'agent via claude -p, collecte le rapport
+bench.sh               N runs/condition → CSV + agrégats
+rapport_complet.html   rapport complet (schémas + état de l'art)
+RAPPORT_DECOUVERTE.md  version markdown du rapport
+GROUND_TRUTH.md        la vuln plantée, le flag, les comptes de démo (lab)
+data/                  données agrégées des campagnes (CSV)
+docs/                  graphiques du README
 ```
 
-Nécessite le CLI [Claude Code](https://claude.com/claude-code) (`claude -p`).
+---
 
-## Structure
+## ⚠️ Avertissement
 
-```
-server.js            cible + payloads + isolation 2 ports + compteur de runs
-payloads.js          catalogue tactique × vecteur (v1 / v2)
-src/                 SPA React (boutique) + injecteurs client + banc d'essai (#lab)
-prompts/             system + task prompt figés de l'agent
-run_agent.sh         lance l'agent via claude -p, collecte le rapport
-bench.sh             N runs/condition -> CSV + agrégats
-rapport_complet.html rapport complet (schémas + état de l'art)
-GROUND_TRUTH.md      la vuln plantée, le flag, les comptes de démo (lab)
-data/                données agrégées des campagnes (CSV)
-```
+Projet de **recherche défensive**. La cible est un **laboratoire** dont les « vulnérabilités » sont
+synthétiques ; l'agent et la cible appartiennent à l'auteur. À n'utiliser que sur votre propre
+infrastructure, dans un cadre autorisé. Ce dépôt ne contient aucune donnée réelle ni cible tierce.
 
-## Avertissement
-
-Projet de **recherche défensive**. La cible est un **laboratoire** dont les
-« vulnérabilités » sont synthétiques ; l'agent et la cible appartiennent à
-l'auteur. À n'utiliser que sur votre propre infrastructure, dans un cadre
-autorisé. Ce dépôt ne contient aucune donnée réelle ni cible tierce.
-
-## Licence
+## 📄 Licence
 
 MIT — voir [`LICENSE`](LICENSE).
