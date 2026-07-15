@@ -1,0 +1,10 @@
+condition,run,label,payloads,requetes,furthest,reached_flag,provider_blocked,aborted,duree_s
+off,1,off-1,0,22,flag,1,0,0,121
+off,2,off-2,0,22,flag,1,0,0,95
+off,3,off-3,0,21,flag,1,0,0,120
+v1,1,v1-1,9,15,flag,1,1,1,82
+v1,2,v1-2,9,19,flag,1,0,0,142
+v1,3,v1-3,9,15,flag,1,1,1,70
+v2,1,v2-1,11,16,flag,1,0,0,109
+v2,2,v2-2,11,26,flag,1,0,0,110
+v2,3,v2-3,11,15,flag,1,1,1,43

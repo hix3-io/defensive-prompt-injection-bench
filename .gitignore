@@ -1,0 +1,13 @@
+# deps & build
+node_modules/
+dist/
+
+# transcripts d'agent bruts (contiennent des metadonnees de session) — non publies
+results/
+
+# divers
+*.log
+.DS_Store
+
+# config locale Claude Code
+.claude/
