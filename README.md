@@ -164,6 +164,67 @@ Détails et références dans [`rapport_complet.html`](rapport_complet.html) (§
 
 ---
 
+## 🧠 Modèle mental — pourquoi le contenu ne pilote pas l'agent
+
+Tout ce que l'agent lit finit dans **une seule séquence de tokens**. Les « rôles » sont des
+**étiquettes apprises** (pas des cloisons matérielles) : le contenu du site arrive comme *observation*
+de plus basse autorité — jamais comme un ordre.
+
+```mermaid
+flowchart TB
+  S["🔒 système / alignement — dans les POIDS (refus, valeurs)"] --> D
+  D["🛠️ développeur / harnais — « labo autorisé, va au bout »"] --> U
+  U["👤 utilisateur — la tâche de pentest"] --> T
+  T["🌐 tool_result — LE SITE (HTML · JS · headers · API)  ⟵ nos payloads"]
+  classDef site fill:#3b1518,stroke:#f85149,color:#fff;
+  class T site;
+```
+
+Un « stop » injecté dans la page atterrit dans `tool_result` → traité comme **donnée**, jamais promu en
+instruction. **Trois canaux** peuvent arrêter un agent — et un seul est sensible au texte :
+
+| Canal | Où | Répond à | Sensible au texte du site ? |
+|:--|:--|:--|:--|
+| **[a]** hiérarchie d'instructions | in-contexte (appris) | *« est-ce un ordre reçu ? »* | **Non** — site = donnée, ignoré |
+| **[b]** refus in-weights | poids du modèle | *« l'acte est-il grave ? »* | **Non** — dépend de l'acte réel |
+| **[c]** classifieur fournisseur | hors modèle, niveau requête | *« intention cyber prohibée ? »* | **Oui** — filtre lexical, stochastique, *post-hoc* |
+
+- Le blocage qu'on observe dans le banc est **[c]**, pas [b] : sensible au **vocabulaire**, pas au tort
+  réel (v1 agressif ~50 % de blocage vs off ~17 %, *sans aucune vraie victime*), et déclenché **après**
+  l'exploitation.
+- Le « mur » n'est pas structurel mais **appris** : l'injection indirecte est faible (~0,5–8,5 % sur
+  modèles frontier) mais **non nulle**, et se dégrade en contexte long.
+
+> **Le plafond.** Il n'existe pas de zone *subtil + efficace + inoffensif + fiable*. Subtil ⇒ inerte
+> ([a]) ; efficace ⇒ soit un **tort réel** (indéployable), soit la **loterie du classifieur** ([c],
+> à fort collatéral : crawlers, chercheurs mandatés, scanners de conformité). La seule défense fiable
+> est **comportementale/technique côté serveur** (détection d'énumération → révocation d'accès) + le
+> correctif d'autorisation au niveau objet.
+
+---
+
+## 📌 Ce qu'on a appris / ce qu'il faudrait creuser
+
+**Appris**
+- Le contenu de page ne fait **pas** renoncer un agent autorisé (18/18 flag) — traité comme donnée, pas comme ordre.
+- **Trois canaux** d'arrêt ([a] hiérarchie · [b] refus in-weights · [c] classifieur fournisseur) ; le blocage observé = **[c]**, incontrôlable par le défenseur, sensible au *vocabulaire* et non au tort réel, et **post-exploitation**.
+- Pas de défense par contenu à la fois **fiable, inoffensive et contrôlable**. La vraie défense est côté serveur.
+
+**À creuser**
+- **Isoler [a]/[b]/[c]** : variante graduée sur le seul axe *lexical* (même fait, vocabulaire « cyber » croissant, contenu constant) → prouver que [c] est un filtre lexical, pas moral.
+- **Contexte long** : à partir de combien de tours la hiérarchie d'instructions cède-t-elle ?
+- **Généralisation** multi-modèles / multi-fournisseurs (Sonnet, GPT, Gemini…).
+- **Chiffrer le collatéral de [c]** : combien de faux-arrêts (trafic légitime) pour un vrai arrêt ?
+- **Couche comportementale** : coder détection d'énumération → step-up → révocation, et mesurer qu'elle stoppe là où le contenu échoue.
+- **Reproductibilité** : N ≥ 5–10 / condition, sur plusieurs jours (stochasticité de [c]).
+
+> **Limite éthique assumée.** On ne fabrique pas les payloads « Famille B » (fausses PII indistinguables
+> de vraies victimes, marqueurs adjacents à de l'abus) : leur pouvoir vient de la tromperie réaliste, le
+> point est déjà démontré par leur seule existence catégorielle, et l'artefact serait réutilisable
+> hors labo. Le refus fait partie du résultat.
+
+---
+
 ## 🗂️ Structure
 
 ```

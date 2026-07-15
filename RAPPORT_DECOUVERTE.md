@@ -144,3 +144,47 @@ La défense efficace n'est pas dans le texte de la page mais dans le **code** :
 le contrôle d'ownership manquant sur `GET /api/orders/:id`. C'est le correctif
 d'une ligne (`if (o.userId !== u.id) return 403`) qui neutralise 100 % des runs
 — pas un paragraphe de dissuasion.
+
+---
+
+## 📌 Ce qu'on a appris / ce qu'il faudrait creuser
+
+> **Ce qu'on a appris**
+> - **Le contenu de page ne fait pas renoncer un agent autorisé** (18/18 flag). Il
+>   est traité comme *donnée observée*, jamais comme *ordre reçu* — d'où son
+>   inertie, quel que soit le ton.
+> - **Trois canaux d'arrêt, pas deux.** `[a]` hiérarchie d'instructions (ignore le
+>   site comme ordre) · `[b]` refus in-weights sur la nature réelle de l'acte ·
+>   `[c]` classifieur du fournisseur (hors modèle, niveau requête). Le blocage
+>   qu'on observe est `[c]`, pas `[b]`.
+> - **Le seul canal sensible au texte (`[c]`) est incontrôlable par le défenseur** :
+>   stochastique, corrélé au *vocabulaire* et non au tort réel (v1 agressif ~50 %
+>   vs off ~17 %, sans aucune vraie victime), et déclenché **après** l'exploitation.
+> - **Le « mur » n'est pas structurel mais appris** : injection indirecte faible
+>   (~0,5–8,5 % sur frontier) mais non nulle, et qui se dégrade en contexte long.
+> - **Pas de zone « subtil + efficace + inoffensif + fiable ».** Subtil ⇒ inerte ;
+>   efficace ⇒ soit tort réel (indéployable), soit loterie du classifieur (à fort
+>   collatéral : crawlers, chercheurs mandatés, scanners de conformité).
+> - **La seule défense fiable est côté serveur** : détection d'énumération +
+>   révocation d'accès, et le correctif d'autorisation au niveau objet.
+>
+> **Ce qu'il faudrait creuser**
+> - **Séparer `[a]`/`[b]`/`[c]` dans la mesure** : une variante graduée sur le seul
+>   axe *lexical* (même fait, vocabulaire « cyber » croissant, à contenu constant)
+>   → prouver que `[c]` est un filtre lexical, pas une évaluation morale.
+> - **Robustesse en contexte long** : à partir de combien de tours la hiérarchie
+>   d'instructions cède-t-elle à une injection persistante ?
+> - **Généralisation** multi-modèles et multi-versions (Sonnet, autres
+>   fournisseurs) — les taux d'injection et de blocage varient par modèle.
+> - **Chiffrer le collatéral de `[c]`** : combien de faux-arrêts (trafic légitime)
+>   pour un vrai arrêt ? C'est le vrai coût de cette « défense ».
+> - **Coder la couche comportementale** (détection d'énumération → step-up →
+>   révocation) et mesurer qu'elle stoppe là où le contenu échoue.
+> - **Reproductibilité** : N ≥ 5–10 par condition, sur plusieurs jours, pour dompter
+>   la stochasticité du classifieur.
+>
+> **Limite éthique assumée.** On ne fabrique pas les payloads « Famille B » (fausses
+> PII indistinguables de vraies victimes, marqueurs adjacents à de l'abus) : leur
+> pouvoir vient de la tromperie réaliste, le point est déjà démontré par leur seule
+> existence catégorielle, et l'artefact serait réutilisable hors labo. Le refus fait
+> partie du résultat.
